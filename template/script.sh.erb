@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+#
+# Start Jupyter Notebook server + Spark cluster
+#
+echo "Starting main script..."
+echo "TTT - $(date)"
+
+# Create Jupyter kernels
+export JUPYTER_PATH="${PWD}/share/jupyter"
+export KERNEL_PATH="${JUPYTER_PATH}/kernels/pyspark"
+mkdir -p "${KERNEL_PATH}"
+cp "${PWD}/assets/python"/* "${KERNEL_PATH}"
+(
+umask 077
+sed 's/^ \{2\}//' > "${KERNEL_PATH}/kernel.json" << EOL
+  {
+    "display_name": "PySpark",
+    "language": "python",
+    "argv": [
+      "${PYTHON_WRAPPER_FILE}",
+      "-m",
+      "ipykernel",
+      "-f",
+      "{connection_file}"
+    ]
+  }
+EOL
+)
+
+# Set working directory to notebook root directory
+cd "${NOTEBOOK_ROOT}"
+
+echo "TTT - $(date)"
+
+# List available kernels for debugging purposes
+set -x
+jupyter kernelspec list
+{ set +x; } 2>/dev/null
+
+echo "TTT - $(date)"
+
+# Launch Jupyter Notebook interface to Spark
+set -x
+jupyter <%= context.jupyterlab_switch == "1" ? "lab" : "notebook" %> --config="${CONFIG_FILE}"

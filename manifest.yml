@@ -1,0 +1,13 @@
+---
+name: Jupyter + Spark
+category: Interactive Apps
+subcategory: Servers
+role: batch_connect
+description: |
+  This app will launch a [Jupyter Notebook] server using [Python] as well as an
+  [Apache Spark] cluster on the [Quest cluster].
+
+  [Jupyter Notebook]: https://jupyter.org/
+  [Python]: https://www.python.org/
+  [Apache Spark]: https://spark.apache.org/
+  [Quest cluster]: https://www.it.northwestern.edu/departments/it-services-support/research/computing/quest/index.html

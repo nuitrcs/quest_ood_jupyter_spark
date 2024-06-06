@@ -1,0 +1,220 @@
+<%-
+  num_workers = context.num_cores.to_i
+  total_tasks = num_workers * context.number_of_nodes.to_i
+
+  def extra_spark_config
+    if context.spark_configuration_file.empty?
+      {}
+    else
+      {}.tap do |extra|
+        File.readlines(context.spark_configuration_file.strip).each do |line|
+          key, value = line.split(' ')
+          extra[key] = value
+        end
+      rescue StandardError
+        {}
+      end.compact
+    end
+  end
+
+  def exec_memory
+    calculated = context.memory_per_node.to_i/context.num_cores.to_i
+    [60, calculated].min
+  end
+
+  spark_config = {
+    "spark.authenticate" => "true",
+    "spark.authenticate.secret" => "${SPARK_SECRET}",
+    "spark.ui.reverseProxy" => "true",
+    "spark.ui.reverseProxyUrl" => "/rnode/${SPARK_MASTER_HOST}/${SPARK_MASTER_WEBUI_PORT}",
+    "spark.ui.enabled" => "true",
+    "spark.ui.killEnabled" => "false",
+  }.merge(extra_spark_config)
+
+  def pyspark_submit_args
+    args = []
+    args.concat(["--executor-memory  #{exec_memory}G"]) unless extra_spark_config.has_key?('spark.executor.memory')
+    args.concat(['--conf spark.driver.maxResultSize=0']) unless extra_spark_config.has_key?("spark.driver.maxResultSize")
+
+    if extra_spark_config.has_key?('spark.driver.memory')
+      args.concat(["--driver-memory #{extra_spark_config['spark.driver.memory']}"])
+    else
+      args.concat(["--driver-memory #{context.only_driver_on_root == "1" ? memory_per_node : 2}G"])
+    end
+
+    args
+  end
+-%>
+
+# Export the module function if it exists
+[[ $(type -t module) == "function" ]] && export -f module
+
+# Find available port to run server on
+port=$(find_port ${host})
+
+# Generate SHA1 encrypted password (requires OpenSSL installed)
+SALT="$(create_passwd 16)"
+password="$(create_passwd 16)"
+PASSWORD_SHA1="$(echo -n "${password}${SALT}" | openssl dgst -sha1 | awk '{print $NF}')"
+export SPARK_UI_AUTH_TOKEN=$(uuid)
+export spark_ui_auth_token=$SPARK_UI_AUTH_TOKEN
+export spark_version=<%= context.spark_version %>
+
+# older versions of Jupyter use XDG_RUNTIME_DIR, which Slurm sets, but we cannot use
+# because we don't have permission to modify /user/run/$(id -u).
+# newer versions (which the regular app uses and this should eventually
+# upgrade to) use XDG_DATA_HOME, which Slurm does not set (yet). So force
+# JUPYTER_RUNTIME_DIR (and JUPYTER_DATA_DIR) to what it would otherwise be.
+export JUPYTER_DATA_DIR="$HOME/.local/share/jupyter"
+export JUPYTER_RUNTIME_DIR="$JUPYTER_DATA_DIR/runtime"
+
+# The `$CONFIG_FILE` environment variable is exported as it is used in the main
+# `script.sh.erb` file when launching the Jupyter Notebook server.
+export CONFIG_FILE="${PWD}/config.py"
+
+# Generate Jupyter configuration file with secure file permissions
+(
+umask 077
+cat > "${CONFIG_FILE}" << EOL
+c.NotebookApp.ip = '*'
+c.NotebookApp.port = ${port}
+c.NotebookApp.port_retries = 0
+c.NotebookApp.password = u'sha1:${SALT}:${PASSWORD_SHA1}'
+c.NotebookApp.base_url = '/node/${host}/${port}/'
+c.NotebookApp.open_browser = False
+c.NotebookApp.allow_origin = '*'
+c.NotebookApp.notebook_dir = '<%= context.notebook_directory_root == "" ? "${HOME}" : context.notebook_directory_root %>'
+c.NotebookApp.disable_check_xsrf = True
+EOL
+)
+
+
+#
+# Launch Spark cluster in standalone mode
+#
+
+# Create log directory
+export LOG_ROOT="${PWD}/logs"
+mkdir "${LOG_ROOT}"
+
+# Set master connection information
+export SPARK_MASTER_HOST=${host}
+export SPARK_MASTER_PORT=$(find_port ${SPARK_MASTER_HOST})
+export SPARK_MASTER_WEBUI_PORT=$(find_port ${SPARK_MASTER_HOST})
+export spark_master_webui_port=$SPARK_MASTER_WEBUI_PORT
+export spark_master_host=$SPARK_MASTER_HOST
+
+# Generate Spark secret
+SPARK_SECRET="$(create_passwd)"
+
+# Generate Spark configuration file
+export SPARK_CONFIG_FILE="${PWD}/spark-defaults.conf"
+(
+umask 077
+cat > "${SPARK_CONFIG_FILE}" << EOL
+<%- spark_config.each do |k, v| -%>
+<%= k %> <%= v %>
+<%- end -%>
+EOL
+)
+
+# Launch Spark master process
+(
+# Set master information
+export MASTER_LOG_FILE="${LOG_ROOT}/spark-master-${SPARK_MASTER_HOST}.out"
+
+# Launch master
+echo "Launching master on ${SPARK_MASTER_HOST}:${SPARK_MASTER_PORT}..."
+set -x
+"${SPARK_HOME}/bin"/spark-class "org.apache.spark.deploy.master.Master" \
+    --properties-file "${SPARK_CONFIG_FILE}" \
+  &> "${MASTER_LOG_FILE}" &
+)
+
+# Wait for the master server to fully start
+echo "Waiting for master server to open port ${SPARK_MASTER_PORT}..."
+if wait_until_port_used "${SPARK_MASTER_HOST}:${SPARK_MASTER_PORT}" 60; then
+  echo "Discovered master listening on port ${SPARK_MASTER_PORT}!"
+else
+  echo "Timed out waiting for master to open port ${SPARK_MASTER_PORT}!"
+  clean_up 1
+fi
+sleep 2
+
+echo "TTT - $(date)"
+
+# Create Spark worker launcher script
+export SPARK_WORKER_SCRIPT="${PWD}/spark-worker.sh"
+(
+umask 077
+sed 's/^ \{2\}//' > "${SPARK_WORKER_SCRIPT}" << EOL
+  #!/usr/bin/bash -l
+
+  <%- if context.only_driver_on_root == "1" -%>
+  [[ \${PBS_NODENUM} == "0" ]] && exit 0
+  <%- end -%>
+
+  # Load helper methods
+  $(declare -f source_helpers)
+  source_helpers
+
+  # Set worker connection information
+  export SPARK_WORKER_HOST=\${HOSTNAME}
+  export SPARK_WORKER_PORT=\$(find_port \${SPARK_WORKER_HOST})
+  export SPARK_WORKER_WEBUI_PORT=\$(find_port \${SPARK_WORKER_HOST})
+  export SPARK_WORKER_DIR="${PWD}/work"
+  export SPARK_WORKER_CORES=$(($(nproc)/<%= num_workers %>))
+
+  export WORKER_LOG_FILE="${LOG_ROOT}/spark-worker-\${SPARK_WORKER_HOST}-\${SLURM_TASK_PID}.out"
+
+  # Launch worker
+  echo "Launching worker \${SLURM_TASK_PID} on \${SPARK_WORKER_HOST}:\${SPARK_WORKER_PORT}..."
+  set -x
+  "\${SPARK_HOME}/bin"/spark-class "org.apache.spark.deploy.worker.Worker" \\
+      --properties-file "${SPARK_CONFIG_FILE}" \\
+      spark://${SPARK_MASTER_HOST}:${SPARK_MASTER_PORT} \\
+    &> "\${WORKER_LOG_FILE}"
+EOL
+)
+chmod 700 "${SPARK_WORKER_SCRIPT}"
+
+# Launch workers
+echo "Launching workers..."
+srun --export ALL --ntasks <%= total_tasks %> singularity exec <%= context.spark_version %> "${SPARK_WORKER_SCRIPT}" &
+
+#
+# Launch Jupyter with PySpark
+#
+
+# Create a `python` wrapper script
+export PYTHON_WRAPPER_FILE="${PWD}/python.sh"
+(
+umask 077
+sed 's/^ \{2\}//' > "${PYTHON_WRAPPER_FILE}" << EOL
+  #!/usr/bin/env bash
+
+  # Log all output from this script
+  export PYTHON_LOG_FILE="${PWD}/python.log"
+  exec &>>"\${PYTHON_LOG_FILE}"
+
+  # Setup PySpark
+  export PYTHONPATH="\${SPARK_HOME}/python:\$PYTHONPATH"
+  export PYTHONPATH="\${SPARK_HOME}/python/lib/py4j-0.10.9.7-src.zip:\$PYTHONPATH"
+  export PYTHONSTARTUP="\${SPARK_HOME}/python/pyspark/shell.py"
+  export PYSPARK_SUBMIT_ARGS=" \\
+    --master spark://${SPARK_MASTER_HOST}:${SPARK_MASTER_PORT} \\
+    --properties-file \"${SPARK_CONFIG_FILE}\" \\
+    <%- pyspark_submit_args.each do |arg| -%>
+    <%= arg %> \\
+    <%- end -%>
+    pyspark-shell \\
+  "
+
+  # Launch the original command
+  set -x
+  exec python "\${@}"
+EOL
+)
+
+chmod 700 "${PYTHON_WRAPPER_FILE}"
+export PYTHON_WRAPPER_FILE

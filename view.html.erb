@@ -1,0 +1,32 @@
+<%- extend ERB::Util -%>
+Some helpful resources on using Apache Spark in a Jupyter notebook:
+
+- <a href="https://spark.apache.org/examples.html" target="_blank">Apache Spark Examples</a>
+
+<script type="text/javascript">
+  (function () {
+    let date = new Date();
+    date.setTime(date.getTime() + (7*24*60*60*1000));
+    let expires = `expires="${date.toUTCString()}"`;
+    let cookiePath =  'path=/rnode/<%= spark_master_host %>/<%= spark_master_webui_port %>';
+    let cookie = `spark_ui_auth_token=<%= spark_ui_auth_token %>;${cookiePath};${expires};samesite=strict;secure;`;
+    document.cookie = cookie;
+  })();
+  </script>
+
+<div class="row">
+  <div class="col-md-6">
+    <form action="/node/<%= host %>/<%= port %>/login" method="post" target="_blank">
+      <input type="hidden" name="password" value="<%= password %>">
+      <button class="btn btn-primary" type="submit" style="margin-top: 6px;">
+        <i class="fa fa-cogs"></i> Connect to Jupyter
+      </button>
+    </form>
+  </div>
+
+  <div class="col-md-6">
+    <a class="btn btn-primary" target="_blank" href="/rnode/<%= spark_master_host %>/<%= spark_master_webui_port %>/">
+      <i class="fa fa-star"></i> Connect to Spark WebUI
+    </a>
+  </div>
+</div>
