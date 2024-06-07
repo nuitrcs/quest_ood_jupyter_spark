@@ -163,7 +163,8 @@ sed 's/^ \{2\}//' > "${SPARK_WORKER_SCRIPT}" << EOL
   export SPARK_WORKER_PORT=\$(find_port \${SPARK_WORKER_HOST})
   export SPARK_WORKER_WEBUI_PORT=\$(find_port \${SPARK_WORKER_HOST})
   export SPARK_WORKER_DIR="${PWD}/work"
-  export SPARK_WORKER_CORES=$(($(nproc)/<%= num_workers %>))
+  export SPARK_WORKER_CORES=1
+  export SPARK_WORKER_MEMORY=<%= "#{exec_memory}G" %>
 
   export WORKER_LOG_FILE="${LOG_ROOT}/spark-worker-\${SPARK_WORKER_HOST}-\${SLURM_TASK_PID}.out"
 
@@ -178,9 +179,18 @@ EOL
 )
 chmod 700 "${SPARK_WORKER_SCRIPT}"
 
+# Making a singularity wrapper to spark worker script
+export SINGULARITY_WRAPPER_SCRIPT="${PWD}/singularity_wrapper_to_spark_worker_script.sh"
+cat > "${SINGULARITY_WRAPPER_SCRIPT}" << EOL
+#!/usr/bin/bash -l
+module load singularity
+singularity exec -B /projects:/projects <%= context.spark_version %> "${SPARK_WORKER_SCRIPT}"
+EOL
+chmod 700 "${SINGULARITY_WRAPPER_SCRIPT}"
+
 # Launch workers
 echo "Launching workers..."
-srun --export ALL --ntasks <%= total_tasks %> singularity exec <%= context.spark_version %> "${SPARK_WORKER_SCRIPT}" &
+srun --export ALL --ntasks <%= total_tasks %> ${SINGULARITY_WRAPPER_SCRIPT} &
 
 #
 # Launch Jupyter with PySpark
