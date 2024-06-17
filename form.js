@@ -109,12 +109,6 @@ function toggle_gres_value_field_visibility(assocs) {
   replace_options($("#batch_connect_session_context_gres_value"), convert_gpu_partitions(gpu_partitions));
 }
 
-function toggle_number_of_nodes_visibility() {
-  toggle_visibility_of_form_group(
-    '#number_of_nodes',
-    $("#batch_connect_session_context_request_more_than_one_node").is(':checked'));
-}
-
 function set_available_accounts() {
   let assocs = get_associations();
   const selected_partition = $("#batch_connect_session_context_slurm_partition").val();
@@ -175,13 +169,6 @@ function set_slurm_partition_change_handler() {
   });
 }
 
-function set_more_than_one_node_change_handler() {
-  let request_more_than_one_node = $("#batch_connect_session_context_request_more_than_one_node");
-  request_more_than_one_node.click(() => {
-    toggle_number_of_nodes_visibility();
-  });
-}
-
 /**
  * Sets the change handler for the slurm account select.
  */
@@ -230,10 +217,8 @@ $(document).ready(function() {
   // Ensure that fields are shown or hidden based on what was set in the last session
   toggle_gres_value_field_visibility(assocs);
   update_min_max(assocs);
-  toggle_number_of_nodes_visibility();
   set_slurm_partition_change_handler();
   set_slurm_account_change_handler();
-  set_more_than_one_node_change_handler();
   collapse_help();
   $(function () {
     $('[data-toggle="tooltip"]').tooltip({'boundary': $("body")});

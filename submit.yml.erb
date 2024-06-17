@@ -1,8 +1,7 @@
 <%
   groups = OodSupport::User.new.groups.map(&:name).drop(1)
 
-  # your image location will differ
-  ppn = num_cores.blank? ? 1 : num_cores.to_i
+  ntasks = number_of_workers.blank? ? 1 : number_of_workers.to_i
   walltime = (bc_num_hours.to_i * 60)
 %>
 ---
@@ -92,18 +91,10 @@ script:
      # How much time (in hours)
      - "--time"
      - "<%= walltime %>"
-     # How many nodes (always 1)
-     <%- if number_of_nodes != "" %>
-     - "--nodes"
-     - "<%= number_of_nodes %>"
-     <%- else %>
-     - "--nodes"
-     - "1"
-     <%- end %>
-     # How many CPUs
-     - "--ntasks-per-node"
-     - "<%= ppn %>"
-     # How much memory
+     # How many workers
+     - "--ntasks"
+     - "<%= ntasks %>"
+     # How much memory per work
      - "--mem-per-cpu"
      - "<%= memory_per_worker %>G"
      # Job Name

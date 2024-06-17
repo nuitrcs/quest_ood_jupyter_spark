@@ -1,6 +1,5 @@
 <%-
-  num_workers = context.num_cores.to_i
-  total_tasks = num_workers * context.number_of_nodes.to_i
+  total_tasks = context.number_of_workers.to_i
 
   def extra_spark_config
     if context.spark_configuration_file.empty?
