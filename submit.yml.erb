@@ -104,8 +104,8 @@ script:
      - "--ntasks-per-node"
      - "<%= ppn %>"
      # How much memory
-     - "--mem"
-     - "<%= memory_per_node %>G"
+     - "--mem-per-cpu"
+     - "<%= memory_per_worker %>G"
      # Job Name
      - "--job-name"
      - "<%= job_name %>"

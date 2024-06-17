@@ -18,8 +18,7 @@
   end
 
   def exec_memory
-    calculated = context.memory_per_node.to_i/context.num_cores.to_i
-    [60, calculated].min
+    calculated = context.memory_per_worker.to_i
   end
 
   spark_config = {
@@ -39,7 +38,7 @@
     if extra_spark_config.has_key?('spark.driver.memory')
       args.concat(["--driver-memory #{extra_spark_config['spark.driver.memory']}"])
     else
-      args.concat(["--driver-memory #{context.only_driver_on_root == "1" ? memory_per_node : 2}G"])
+      args.concat(["--driver-memory #{context.only_driver_on_root == "1" ? memory_per_worker : 2}G"])
     end
 
     args
