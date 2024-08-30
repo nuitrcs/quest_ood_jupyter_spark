@@ -10,6 +10,9 @@ form:
   # Any extra user specific spark configuration settings
   - spark_configuration_file
   - only_driver_on_root
+  # Customize the location XDG_DATA_HOME  so that jupyter cached product
+  # do not go to ~/.local/share/jupyter/ which may cause home folder to fill up
+  - xdg_data_home
   # This allows the user to select which partition they submit to
   - slurm_partition
   # This allows a user to request a GPU
@@ -40,7 +43,13 @@ attributes:
     label: "PySpark version"
     help: "What version of PySpark would you like to launch"
     options:
-      - [ "Spark 3.5.1, PySpark 2.12.18", "/software/spark/3.5.1/pyspark-notebook_latest.sif" ]
+      - [ "Spark 3.5.1, PySpark 2.12.18, MLFlow", "/software/spark/3.5.1/pyspark-notebook_spark-3.5.1.sif" ]
+
+  xdg_data_home:
+    label: "Set XDG_DATA_HOME (Optional)"
+    value: ""
+    help: |
+      If you leave this blank, Jupyter will store its intermediate cache data products in `~/.local/share/jupyter/`. Otherwise, specify a full PATH to a folder on Quest. This is important to consider if the default location `~/.local/share/jupyter/`. causes you HOME directory to become full. 
 
   spark_configuration_file:
     help: Override defaults with a new configuration file. Leave blank to use defaults.

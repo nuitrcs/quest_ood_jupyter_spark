@@ -26,6 +26,8 @@
     "spark.ui.reverseProxy" => "true",
     "spark.ui.reverseProxyUrl" => "/rnode/${SPARK_MASTER_HOST}/${SPARK_MASTER_WEBUI_PORT}",
     "spark.ui.enabled" => "true",
+    "spark.ui.timelineEnabled" => "true",
+    "spark.ui.showConsoleProgress" => "true",
     "spark.ui.killEnabled" => "false",
   }.merge(extra_spark_config)
 
@@ -54,7 +56,7 @@ port=$(find_port ${host})
 SALT="$(create_passwd 16)"
 password="$(create_passwd 16)"
 PASSWORD_SHA1="$(echo -n "${password}${SALT}" | openssl dgst -sha1 | awk '{print $NF}')"
-export SPARK_UI_AUTH_TOKEN=$(uuid)
+export SPARK_UI_AUTH_TOKEN=$(uuidgen)
 export spark_ui_auth_token=$SPARK_UI_AUTH_TOKEN
 export spark_version=<%= context.spark_version %>
 
@@ -63,7 +65,8 @@ export spark_version=<%= context.spark_version %>
 # newer versions (which the regular app uses and this should eventually
 # upgrade to) use XDG_DATA_HOME, which Slurm does not set (yet). So force
 # JUPYTER_RUNTIME_DIR (and JUPYTER_DATA_DIR) to what it would otherwise be.
-export JUPYTER_DATA_DIR="$HOME/.local/share/jupyter"
+export XDG_DATA_HOME='<%= context.xdg_data_home == "" ? "${HOME}" : context.xdg_data_home %>'
+export JUPYTER_DATA_DIR="$XDG_DATA_HOME/.local/share/jupyter"
 export JUPYTER_RUNTIME_DIR="$JUPYTER_DATA_DIR/runtime"
 
 # The `$CONFIG_FILE` environment variable is exported as it is used in the main
