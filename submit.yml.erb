@@ -34,7 +34,8 @@ batch_connect:
     ## for pip
     export SINGULARITYENV_XDG_CACHE_HOME=${JUPYTER_TMPDIR}/xdg_cache_home
     ## job specific tmp in case there are conflicts with different users running on the same node
-    WORKDIR=${HOME}/jupyter/${SLURM_JOB_ID}
+    WORKDIR_PREFIX='<%= xdg_data_home == "" ? "${HOME}" : xdg_data_home %>'
+    WORKDIR=${WORKDIR_PREFIX}/jupyter/${SLURM_JOB_ID}
 
     mkdir -m 700 -p ${WORKDIR}/tmp
 
