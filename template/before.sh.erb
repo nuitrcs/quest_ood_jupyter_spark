@@ -185,7 +185,7 @@ export SINGULARITY_WRAPPER_SCRIPT="${PWD}/singularity_wrapper_to_spark_worker_sc
 cat > "${SINGULARITY_WRAPPER_SCRIPT}" << EOL
 #!/usr/bin/bash -l
 module load singularity
-singularity exec -B /projects:/projects <%= context.spark_version %> "${SPARK_WORKER_SCRIPT}"
+singularity exec -B /scratch:/scratch -B /kellogg:/kellogg -B /projects:/projects <%= context.spark_version %> "${SPARK_WORKER_SCRIPT}"
 EOL
 chmod 700 "${SINGULARITY_WRAPPER_SCRIPT}"
 
