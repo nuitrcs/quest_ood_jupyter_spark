@@ -130,5 +130,10 @@ script:
      - "<%= gres_value %>"
      <%- end %>
      # As this will be multinode, we will force the constraint
+    <%- if rhel_eight == "1" %>
+     - "--constraint"
+     - "[quest10_rhel8|quest13]"
+    <%- else %>
      - "--constraint"
      - "[quest9|quest10|quest11|quest12]"
+    <%- end %>

@@ -13,6 +13,7 @@ form:
   # Customize the location XDG_DATA_HOME  so that jupyter cached product
   # do not go to ~/.local/share/jupyter/ which may cause home folder to fill up
   - xdg_data_home
+  - rhel_eight
   # This allows the user to select which partition they submit to
   - slurm_partition
   # This allows a user to request a GPU
@@ -60,6 +61,12 @@ attributes:
     help: |
       This is typically used for `.collect` and `.take` operations that require
       a large amount of memory allocated (> 2GB) for the driver process.
+
+  rhel_eight:
+    widget: "check_box"
+    label: Run Jupyter + Spark on RHEL8 Pilot Environment
+    help: |
+      Run Jupyter + Spark on RHEL8 Pilot Environment.
 
   jupyterlab_switch:
     widget: "check_box"
