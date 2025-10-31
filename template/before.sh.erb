@@ -223,7 +223,7 @@ sed 's/^ \{2\}//' > "${PYTHON_WRAPPER_FILE}" << EOL
 
   # Launch the original command
   set -x
-  exec python "\${@}"
+  exec /opt/conda/bin/python "\${@}"
 EOL
 )
 
