@@ -6,7 +6,32 @@
 echo "Starting main script..."
 echo "TTT - $(date)"
 
-mlflow server --host 0.0.0.0 --port 5000 &
+# Configure MLflow data directory
+if [ -n "${MLFLOW_DATA_HOME}" ]; then
+  # User specified a custom MLflow data directory (e.g., /scratch/<netid>)
+  echo "Using user-specified MLflow data directory: ${MLFLOW_DATA_HOME}"
+  MLFLOW_BACKEND_STORE="${MLFLOW_DATA_HOME}/mlruns"
+  MLFLOW_ARTIFACT_ROOT="${MLFLOW_DATA_HOME}/mlartifacts"
+else
+  # Use job working directory (OnDemand output directory, not home)
+  # This data will be in the job output folder and cleaned up when job ends
+  echo "Using job working directory for MLflow data: ${PWD}"
+  MLFLOW_BACKEND_STORE="${PWD}/mlruns"
+  MLFLOW_ARTIFACT_ROOT="${PWD}/mlartifacts"
+fi
+
+# Create directories and launch MLflow server
+mkdir -p "${MLFLOW_BACKEND_STORE}"
+mkdir -p "${MLFLOW_ARTIFACT_ROOT}"
+echo "MLflow backend store: ${MLFLOW_BACKEND_STORE}"
+echo "MLflow artifact root: ${MLFLOW_ARTIFACT_ROOT}"
+
+mlflow server \
+  --host 0.0.0.0 \
+  --port 5000 \
+  --backend-store-uri "file://${MLFLOW_BACKEND_STORE}" \
+  --default-artifact-root "file://${MLFLOW_ARTIFACT_ROOT}" &
+
 export MLFLOW_TRACKING_URI="http://127.0.0.1:5000"
 
 
@@ -33,7 +58,9 @@ EOL
 )
 
 # Set working directory to notebook root directory
+echo "Changing to notebook root directory: ${NOTEBOOK_ROOT}"
 cd "${NOTEBOOK_ROOT}"
+echo "Current working directory: $(pwd)"
 
 echo "TTT - $(date)"
 
