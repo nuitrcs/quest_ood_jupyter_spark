@@ -13,6 +13,8 @@ form:
   # Customize the location XDG_DATA_HOME  so that jupyter cached product
   # do not go to ~/.local/share/jupyter/ which may cause home folder to fill up
   - xdg_data_home
+  # Customize the location for MLflow data (mlruns and mlartifacts)
+  - mlflow_data_home
   # This allows the user to select which partition they submit to
   - slurm_partition
   # This allows a user to request a GPU
@@ -50,7 +52,13 @@ attributes:
     label: "Set XDG_DATA_HOME (Optional)"
     value: ""
     help: |
-      If you leave this blank, Jupyter will store its intermediate cache data products in `~/.local/share/jupyter/`. Otherwise, specify a full PATH to a folder on Quest. This is important to consider if the default location `~/.local/share/jupyter/`. causes you HOME directory to become full. 
+      If you leave this blank, Jupyter will store its intermediate cache data products in `~/.local/share/jupyter/`. Otherwise, specify a full PATH to a folder on Quest. This is important to consider if the default location `~/.local/share/jupyter/`. causes you HOME directory to become full.
+
+  mlflow_data_home:
+    label: "MLflow Data Directory"
+    value: ""
+    help: |
+      Specify the full PATH to a folder on Quest where MLflow will store experiment tracking data (mlruns database and mlartifacts). It is recommended to use /scratch/<netid> or /projects/<group> to avoid filling up your HOME directory. If you leave this blank, MLflow data will be stored in the job's working directory and will be deleted when the job ends. The directory will be created if it doesn't exist.
 
   spark_configuration_file:
     help: Override defaults with a new configuration file. Leave blank to use defaults.
