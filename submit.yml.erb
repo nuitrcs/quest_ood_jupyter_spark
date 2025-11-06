@@ -34,7 +34,11 @@ batch_connect:
     ## for pip
     export SINGULARITYENV_XDG_CACHE_HOME=${JUPYTER_TMPDIR}/xdg_cache_home
     ## job specific tmp in case there are conflicts with different users running on the same node
-    WORKDIR_PREFIX='<%= xdg_data_home == "" ? "${HOME}" : xdg_data_home %>'
+    <%- if xdg_data_home != "" %>
+    WORKDIR_PREFIX=<%= xdg_data_home %>
+    <%- else %>
+    WORKDIR_PREFIX=${HOME}
+    <%- end %>
     WORKDIR=${WORKDIR_PREFIX}/jupyter/${SLURM_JOB_ID}
 
     mkdir -m 700 -p ${WORKDIR}/tmp
@@ -61,7 +65,7 @@ batch_connect:
     # Bind /kellogg if it exists (access is controlled by ACLs on the filesystem)
     # Note: /kellogg is a symlink to /gpfs/kellogg, so we bind the actual path
     if [ -d /gpfs/kellogg ]; then
-      export SING_BINDS="$SING_BINDS --bind /gpfs/kellogg:/kellogg"
+      export SING_BINDS="$SING_BINDS --bind /gpfs/kellogg:/gpfs/kellogg --bind /kellogg/:/kellogg/"
     fi
 
     # only bind /scratch/<netid> if individual has a scratch space
@@ -69,13 +73,15 @@ batch_connect:
 
     # Only bind projects directories that the user would have access to based on their unix groups
     <%- groups.each do |group| %>
-    export SING_BINDS="$SING_BINDS <%= File.directory?("/projects/#{group}") ? "--bind /projects/#{group}:/projects/#{group}" : "" %>"
+    export SING_BINDS="$SING_BINDS <%= File.directory?("/projects/#{group}") ? "--bind /projects/#{group}:/projects/#{group} --bind /gpfs/projects/#{group}:/gpfs/projects/#{group}" : "" %>"
     <%- end %>
 
     ## job specific tmp dir
     export SING_BINDS=" $SING_BINDS -B ${WORKDIR}/tmp:/tmp " 
 
-    export SINGULARITYENV_XDG_DATA_HOME='<%= xdg_data_home == "" ? "${HOME}" : xdg_data_home %>'
+    <%- if xdg_data_home != "" %>
+    export SINGULARITYENV_XDG_DATA_HOME=<%= xdg_data_home %>
+    <%- end %>
 
     singularity exec $SING_GPU $SING_BINDS "${container_image}" /bin/bash container.sh
 

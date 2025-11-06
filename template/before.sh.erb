@@ -65,17 +65,25 @@ export spark_version=<%= context.spark_version %>
 # newer versions (which the regular app uses and this should eventually
 # upgrade to) use XDG_DATA_HOME, which Slurm does not set (yet). So force
 # JUPYTER_RUNTIME_DIR (and JUPYTER_DATA_DIR) to what it would otherwise be.
-export XDG_DATA_HOME='<%= context.xdg_data_home == "" ? "${HOME}" : context.xdg_data_home %>'
+<%- if context.xdg_data_home != "" %>
+export XDG_DATA_HOME=<%= context.xdg_data_home %>
+<%- end %>
 export JUPYTER_DATA_DIR="$XDG_DATA_HOME/.local/share/jupyter"
 export JUPYTER_RUNTIME_DIR="$JUPYTER_DATA_DIR/runtime"
 
 # Set MLflow data directory for storing mlruns and mlartifacts
 # If user doesn't specify, it will default to the notebook root directory
-export MLFLOW_DATA_HOME='<%= context.mlflow_data_home == "" ? "" : context.mlflow_data_home %>'
+<%- if context.mlflow_data_home != "" %>
+export MLFLOW_DATA_HOME=<%= context.mlflow_data_home %>
+<%- end %>
 
 # Set the notebook root directory - this is where Jupyter will start and where
 # the script will cd to before launching Jupyter
-export NOTEBOOK_ROOT='<%= context.notebook_directory_root == "" ? "${HOME}" : context.notebook_directory_root %>'
+<%- if context.notebook_directory_root != "" %>
+export NOTEBOOK_ROOT=<%= context.notebook_directory_root %>
+<%- else %>
+export NOTEBOOK_ROOT=${HOME}
+<%- end %>
 
 # The `$CONFIG_FILE` environment variable is exported as it is used in the main
 # `script.sh.erb` file when launching the Jupyter Notebook server.
