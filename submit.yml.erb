@@ -102,7 +102,8 @@ script:
      - "<%= number_of_nodes %>"
      <%- else %>
      - "--nodes"
-     - "1"   
+     - "1" 
+     <%- end %>  
      # How many workers
      - "--ntasks"
      - "<%= ntasks %>"
