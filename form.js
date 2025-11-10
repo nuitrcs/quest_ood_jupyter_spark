@@ -234,6 +234,7 @@ $(document).ready(function() {
   toggle_number_of_nodes_visibility();
   set_slurm_partition_change_handler();
   set_slurm_account_change_handler();
+  set_more_than_one_node_change_handler();	
   collapse_help();
   $(function () {
     $('[data-toggle="tooltip"]').tooltip({'boundary': $("body")});
