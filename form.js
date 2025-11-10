@@ -176,6 +176,13 @@ function set_slurm_partition_change_handler() {
   });
 }
 
+function set_more_than_one_node_change_handler() {
+  let request_more_than_one_node = $("#batch_connect_session_context_request_more_than_one_node");
+  request_more_than_one_node.click(() => {
+    toggle_number_of_nodes_visibility();
+  });
+}
+
 /**
  * Sets the change handler for the slurm account select.
  */
