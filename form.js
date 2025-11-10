@@ -231,6 +231,7 @@ $(document).ready(function() {
   // Ensure that fields are shown or hidden based on what was set in the last session
   toggle_gres_value_field_visibility(assocs);
   update_min_max(assocs);
+  toggle_number_of_nodes_visibility();
   set_slurm_partition_change_handler();
   set_slurm_account_change_handler();
   collapse_help();
