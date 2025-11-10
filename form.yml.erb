@@ -126,6 +126,23 @@ attributes:
       exceed the number of cores on the node.
     step: 1
     id: 'number_of_workers'
+  
+
+  request_more_than_one_node:
+    widget: "check_box"
+    label: "Request more than a single node (Optional)"
+    help: |
+      Only check this box if you are confident that your application of choice can utilize CPUs across more than one node. In Python, some of these applications include MPI4py, Dask, and PySpark. Once checked, you will be shown another field where you can request multiple nodes.
+
+  number_of_nodes:
+    widget: "number_field"
+    label: "Number of nodes being requested."
+    value: 1
+    min: 1
+    step: 1
+    id: 'number_of_nodes'
+    help: |
+      How many nodes you want for this session. This will set the value of the `-N/--nodes` flag for your job. A reminder to check that your application of choice can utilize CPUs across more than one node. These applications/packages would include MPI4py, Dask, PySpark, etc. For more information on setting the number of nodes, please see the [number of nodes section](https://services.northwestern.edu/TDClient/30/Portal/KB/ArticleDet?ID=1964#section-number-of-nodes) of our Everything You Need to Know about Using Slurm on Quest page.
 
   memory_per_worker:
     widget: "number_field"
